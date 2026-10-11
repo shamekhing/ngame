@@ -25,6 +25,11 @@ No install and no build step. Controls: **P1 = WASD + F (+ Left Shift)**,
 **Esc** returns to the menu. See *Play in a browser (and online)* below for the
 online setup.
 
+On phones, starting a match requests fullscreen landscape mode. If the browser
+cannot rotate automatically, turn the phone sideways at the prompt or choose
+**Play in portrait**. Gameplay fills the browser viewport, with touch controls
+over the game.
+
 ---
 
 ## How to play

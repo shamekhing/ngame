@@ -63,6 +63,7 @@ export class App {
 
   /** a match starts behind the control card; {intro:false} jumps straight in */
   startMatch({ intro = true } = {}) {
+    if (this.onStartMatch) this.onStartMatch();
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -113,6 +114,14 @@ export class App {
   }
 
   frame(now) {
+    if (this.shouldPause && this.shouldPause()) {
+      this.last = now;
+      this.acc = 0;
+      this.state.draw(this.ctx);
+      if (this.onChrome) this.onChrome(this.state);
+      requestAnimationFrame((t) => this.frame(t));
+      return;
+    }
     const dt = Math.min((now - this.last) / 1000 || 0, 0.05);
     this.last = now;
     this.acc += dt;
@@ -130,12 +139,13 @@ export class App {
   }
 }
 
-function fitCanvas(canvas, padVisible) {
-  const reserve = padVisible ? 250 : 100;
+function fitCanvas(canvas, inGame) {
   const appWidth = document.querySelector('.app').clientWidth;
+  const availableWidth = inGame ? window.innerWidth : Math.min(window.innerWidth - 28, appWidth - 28);
+  const availableHeight = inGame ? window.innerHeight : Math.max(100, window.innerHeight - 100);
   const scale = Math.min(
-    (Math.min(window.innerWidth - 28, appWidth - 28)) / WINDOW_W,
-    Math.max(100, window.innerHeight - reserve) / WINDOW_H,
+    availableWidth / WINDOW_W,
+    availableHeight / WINDOW_H,
   );
   canvas.style.width = `${Math.round(WINDOW_W * scale)}px`;
   canvas.style.height = `${Math.round(WINDOW_H * scale)}px`;
@@ -328,10 +338,12 @@ export async function boot() {
 
   // ---- the main page: host, join, or play here (picking is on the canvas) ----
   const chrome = {
+    app: document.querySelector('.app'),
     menu: document.getElementById('menu'),
     touch: document.getElementById('touch'),
     stage: document.getElementById('stage'),
     results: document.getElementById('resultActions'),
+    rotate: document.getElementById('rotatePrompt'),
   };
   const updatePicks = () => {
     for (const who of ['guy', 'girl']) {
@@ -367,6 +379,31 @@ export async function boot() {
 
   // ---- on-screen controls; they push into the same input pipeline ----
   const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  let allowPortrait = false;
+  const requestLandscape = () => {
+    if (!coarse) return;
+    const lock = () => {
+      if (screen.orientation && screen.orientation.lock) {
+        return screen.orientation.lock('landscape').catch(() => {});
+      }
+      return Promise.resolve();
+    };
+    if (document.fullscreenElement || !document.documentElement.requestFullscreen) {
+      void lock();
+    } else {
+      void document.documentElement.requestFullscreen().catch(() => {}).then(lock);
+    }
+  };
+  app.onStartMatch = () => {
+    allowPortrait = false;
+    requestLandscape();
+  };
+  app.shouldPause = () => !chrome.rotate.hidden;
+  document.getElementById('rotateBtn').addEventListener('click', requestLandscape);
+  document.getElementById('portraitBtn').addEventListener('click', () => {
+    allowPortrait = true;
+    chrome.rotate.hidden = true;
+  });
   const localKeys = () => (app.net && app.net.localSeat === 'p1' ? P1_KEYS : P2_KEYS);
   for (const btn of document.querySelectorAll('#touch button')) {
     const code = () => localKeys()[btn.dataset.key];
@@ -385,20 +422,28 @@ export async function boot() {
   // hide the page chrome while a match is on screen
   app.onChrome = (state) => {
     const onMenu = state instanceof MenuState;
+    const wasInGame = chrome.app.classList.contains('in-game');
+    chrome.app.classList.toggle('in-game', !onMenu);
     if (chrome.menu.hidden !== !onMenu) chrome.menu.hidden = !onMenu;
     chrome.stage.hidden = onMenu;
     chrome.results.hidden = !(state instanceof MatchOverState);
+    chrome.rotate.hidden = onMenu || !coarse || window.innerWidth > window.innerHeight || allowPortrait;
+    if (onMenu && wasInGame) {
+      allowPortrait = false;
+      if (document.fullscreenElement && document.exitFullscreen) void document.exitFullscreen().catch(() => {});
+    }
     if (onMenu) updatePicks();
     const cursor = onMenu ? 'pointer' : 'default';
     if (canvas.style.cursor !== cursor) canvas.style.cursor = cursor;
-    const showPad = !onMenu && (coarse || window.innerWidth < 760);
+    const showPad = !onMenu && !(state instanceof MatchOverState) && (coarse || window.innerWidth < 760);
     if (chrome.touch.hidden === showPad) {
       chrome.touch.hidden = !showPad;
-      fitCanvas(canvas, showPad);
     }
+    if (wasInGame === onMenu) fitCanvas(canvas, !onMenu);
   };
-  window.addEventListener('resize', () => fitCanvas(canvas, !chrome.touch.hidden));
-  fitCanvas(canvas, !chrome.touch.hidden);
+  window.addEventListener('resize', () => fitCanvas(canvas, chrome.app.classList.contains('in-game')));
+  window.visualViewport?.addEventListener('resize', () => fitCanvas(canvas, chrome.app.classList.contains('in-game')));
+  fitCanvas(canvas, false);
 
   requestAnimationFrame((t) => { app.last = t; app.frame(t); });
 }
