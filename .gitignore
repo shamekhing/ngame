@@ -1,0 +1,13 @@
+# Test artifacts / captured frames
+tmp/
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db

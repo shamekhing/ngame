@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#0d0a16" />
+  <title>Catch the Girl</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <main class="app">
+    <div class="stage" id="stage" hidden>
+      <canvas id="game" width="960" height="540" aria-label="Catch the Girl"></canvas>
+    </div>
+    <p id="status" class="status" role="status"></p>
+
+    <!-- the main page: host or join; pick your character on the game screen -->
+    <section id="menu" class="menu">
+      <header class="menu-heading">
+        <h1>Catch the Girl</h1>
+      </header>
+      <div class="picks" role="group" aria-label="Choose your character">
+        <button type="button" id="guyPick" class="pick" aria-pressed="true"><span
+            class="portrait guy"></span><strong>Guy</strong><span class="pick-note">You play</span></button>
+        <button type="button" id="girlPick" class="pick" aria-pressed="false"><span
+            class="portrait girl"></span><strong>Girl</strong><span class="pick-note"></span></button>
+      </div>
+      <div class="actions">
+        <button type="button" id="hostBtn" class="big">Host a match</button>
+        <button type="button" id="joinBtn" class="big alt">Join with a code</button>
+        <button type="button" id="localBtn" class="big">One keyboard, two players</button>
+      </div>
+
+
+      <div id="lobby-io" class="exchange" hidden>
+        <h2 id="exchangeTitle">Connect</h2>
+        <div class="field" id="ourField" hidden>
+          <span id="ourLabel">Share your code</span>
+          <textarea id="ourCode" rows="2" readonly spellcheck="false"></textarea>
+          <button type="button" id="copyBtn" class="ghost">Copy my code</button>
+        </div>
+        <div class="field" id="theirField">
+          <span id="theirLabel">Enter their code</span>
+          <textarea id="theirCode" rows="2" spellcheck="false" placeholder="paste the other player's code"></textarea>
+        </div>
+        <button type="button" id="useBtn" class="big" disabled>Use their code</button>
+        <button type="button" id="startBtn" class="big" hidden>Start match</button>
+        <button type="button" id="leaveBtn" class="ghost" hidden>Leave match</button>
+        <button type="button" id="backBtn" class="ghost">Back</button>
+      </div>
+      <p id="lobbyState" class="lobby-state" role="status"></p>
+    </section>
+
+    <nav id="resultActions" class="result-actions" hidden aria-label="Match actions">
+      <button type="button" id="rematchBtn" class="big">Rematch</button>
+      <button type="button" id="menuBtn" class="ghost">Menu</button>
+    </nav>
+
+    <!-- on-screen controls for touch devices (each player on their own phone) -->
+    <section id="touch" class="touch" hidden aria-label="Touch controls">
+      <div class="pad">
+        <button type="button" class="up" data-key="up" aria-label="Up">&#9650;</button>
+        <button type="button" class="left" data-key="left" aria-label="Left">&#9664;</button>
+        <button type="button" class="down" data-key="down" aria-label="Down">&#9660;</button>
+        <button type="button" class="right" data-key="right" aria-label="Right">&#9654;</button>
+      </div>
+      <div class="acts">
+        <button type="button" class="dodge" data-key="dodge">Dodge</button>
+        <button type="button" class="action" data-key="action">Action</button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

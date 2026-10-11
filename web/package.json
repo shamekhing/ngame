@@ -1,0 +1,10 @@
+{
+  "name": "catch-the-girl-web",
+  "private": true,
+  "type": "module",
+  "description": "Browser build of Catch the Girl. No npm dependencies: node is only used to run the tests.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8000"
+  }
+}

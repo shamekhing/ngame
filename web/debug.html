@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Catch the Girl - arena debug</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 12px; background: #0a0912; color: #cfc9e8;
+         font: 13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+  h1 { font-size: 15px; margin: 0 0 10px; letter-spacing: .12em; text-transform: uppercase; }
+  figure { margin: 0 0 18px; }
+  figcaption { margin-bottom: 6px; color: #f272a8; letter-spacing: .08em; }
+  canvas { display: block; width: 640px; height: 480px; image-rendering: pixelated;
+           border: 1px solid #2a2140; background: #000; }
+</style>
+</head>
+<body>
+<h1>arena debug - whole world, 1:1</h1>
+<main id="out"></main>
+<script type="module">
+// Renders every layout at full world size so the browser painter can be eyeballed
+// (and diffed against the Python build's tmp/arena_*.png renders).
+import { ARENA_LAYOUTS, rects } from './js/config.js';
+import { buildArena, clearArenaCache } from './js/arena.js';
+
+clearArenaCache();
+const out = document.getElementById('out');
+
+for (const layout of ARENA_LAYOUTS) {
+  const walls = rects(layout.solid);
+  const low = rects(layout.low);
+  const t0 = performance.now();
+  const entry = buildArena(layout.name, walls, low);
+  const paintMs = performance.now() - t0;
+
+  const fig = document.createElement('figure');
+  const cap = document.createElement('figcaption');
+  cap.textContent = `${layout.name} - ${walls.length} solid, ${low.length} low - painted in ${paintMs.toFixed(1)} ms`;
+  const canvas = document.createElement('canvas');
+  canvas.width = entry.surface.width;
+  canvas.height = entry.surface.height;
+  canvas.getContext('2d').drawImage(entry.surface, 0, 0);
+
+  fig.append(cap, canvas);
+  out.append(fig);
+}
+
+// let the screenshot harness know the page is done
+window.__ready = true;
+</script>
+</body>
+</html>
