@@ -13,6 +13,7 @@ class Input {
   constructor() {
     this.held = new Set();
     this.pressed = new Set();   // codes pressed since the last step
+    this.axis = { x: 0, y: 0 };
   }
 
   attach(target) {
@@ -24,7 +25,7 @@ class Input {
       this.held.add(e.code);
     });
     target.addEventListener('keyup', (e) => this.held.delete(e.code));
-    target.addEventListener('blur', () => this.held.clear());
+    target.addEventListener('blur', () => { this.held.clear(); this.setAxis(0, 0); });
   }
 
   drainPressed() {
@@ -41,6 +42,11 @@ class Input {
     } else {
       this.held.delete(code);
     }
+  }
+
+  setAxis(x, y) {
+    this.axis.x = Math.max(-1, Math.min(1, x));
+    this.axis.y = Math.max(-1, Math.min(1, y));
   }
 }
 
@@ -379,6 +385,7 @@ export async function boot() {
 
   // ---- on-screen controls; they push into the same input pipeline ----
   const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  app.isTouch = coarse;
   let allowPortrait = false;
   const requestLandscape = () => {
     if (!coarse) return;
@@ -404,6 +411,45 @@ export async function boot() {
     allowPortrait = true;
     chrome.rotate.hidden = true;
   });
+  const joystick = document.getElementById('joystick');
+  const knob = joystick.querySelector('.joystick-knob');
+  let joystickPointer = null;
+  const moveJoystick = (e) => {
+    const rect = joystick.getBoundingClientRect();
+    const radius = rect.width * 0.36;
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    const distance = Math.hypot(dx, dy);
+    const factor = distance > radius ? radius / distance : 1;
+    const x = dx * factor / radius;
+    const y = dy * factor / radius;
+    const magnitude = Math.hypot(x, y);
+    app.input.setAxis(magnitude < 0.12 ? 0 : x, magnitude < 0.12 ? 0 : y);
+    knob.style.left = `${50 + x * 36}%`;
+    knob.style.top = `${50 + y * 36}%`;
+  };
+  const releaseJoystick = (e) => {
+    if (e && e.pointerId !== joystickPointer) return;
+    joystickPointer = null;
+    app.input.setAxis(0, 0);
+    knob.style.left = '50%';
+    knob.style.top = '50%';
+  };
+  joystick.addEventListener('pointerdown', (e) => {
+    if (joystickPointer !== null) return;
+    e.preventDefault();
+    joystickPointer = e.pointerId;
+    joystick.setPointerCapture(e.pointerId);
+    moveJoystick(e);
+  });
+  joystick.addEventListener('pointermove', (e) => {
+    if (e.pointerId === joystickPointer) { e.preventDefault(); moveJoystick(e); }
+  });
+  joystick.addEventListener('pointerup', releaseJoystick);
+  joystick.addEventListener('pointercancel', releaseJoystick);
+  joystick.addEventListener('lostpointercapture', releaseJoystick);
+  joystick.addEventListener('contextmenu', (e) => e.preventDefault());
+  window.addEventListener('blur', () => releaseJoystick());
   const localKeys = () => (app.net && app.net.localSeat === 'p1' ? P1_KEYS : P2_KEYS);
   for (const btn of document.querySelectorAll('#touch button')) {
     const code = () => localKeys()[btn.dataset.key];
@@ -429,6 +475,7 @@ export async function boot() {
     chrome.results.hidden = !(state instanceof MatchOverState);
     chrome.rotate.hidden = onMenu || !coarse || window.innerWidth > window.innerHeight || allowPortrait;
     if (onMenu && wasInGame) {
+      releaseJoystick();
       allowPortrait = false;
       if (document.fullscreenElement && document.exitFullscreen) void document.exitFullscreen().catch(() => {});
     }

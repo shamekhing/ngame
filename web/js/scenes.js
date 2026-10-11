@@ -241,16 +241,17 @@ const KEY_LABELS = {
 };
 
 /** the controls of one seat, as shown on its own device before a match */
-function controlLines(seat, roles) {
+function controlLines(seat, roles, touch = false) {
   const keys = seat === 'p1' ? P1_KEYS : P2_KEYS;
   const who = roles[seat];
   const slot = seat === 'p1' ? 'PLAYER 1' : 'PLAYER 2';
   return [
     slot,
-    ['MOVE', [keys.up, keys.left, keys.down, keys.right]
+    ['MOVE', touch ? 'JOYSTICK' : [keys.up, keys.left, keys.down, keys.right]
       .map((k) => KEY_LABELS[k] || k).join(' ')],
-    ['ACTION', `${KEY_LABELS[keys.action]} (${who === 'guy' ? 'grab' : 'slap'})`],
-    ['DODGE', KEY_LABELS[keys.dodge]],
+    ['ACTION', touch ? `BUTTON (${who === 'guy' ? 'grab' : 'slap'})`
+      : `${KEY_LABELS[keys.action]} (${who === 'guy' ? 'grab' : 'slap'})`],
+    ['DODGE', touch ? 'BUTTON' : KEY_LABELS[keys.dodge]],
   ];
 }
 
@@ -310,7 +311,8 @@ export class IntroState extends State {
     const cols = seats.length === 1 ? [cx] : [cx - 200, cx + 200];
     seats.forEach((seat, i) => {
       const x = cols[i];
-      const lines = controlLines(seat, app.roles);
+      const touchSeat = app.isTouch && (app.net ? app.net.localSeat : 'p2');
+      const lines = controlLines(seat, app.roles, seat === touchSeat);
       const picked = app.roles[seat];
       const card = picked === 'guy' ? this.cardGuy : this.cardGirl;
       this.sprite(ctx, card, x, 152, picked === 'girl', 2);
@@ -505,9 +507,14 @@ export class GameState extends State {
 
   keysFor(mapping, who = null) {
     const held = this.heldFor(who);
+    const net = this.app.net;
+    const axis = net
+      ? who === net.localSeat ? this.app.input.axis : net.remoteAxis
+      : who === 'p2' ? this.app.input.axis : null;
     return {
       up: held.has(mapping.up), down: held.has(mapping.down),
       left: held.has(mapping.left), right: held.has(mapping.right),
+      axis: axis && (axis.x !== 0 || axis.y !== 0) ? axis : null,
     };
   }
 
@@ -714,7 +721,11 @@ export class GameState extends State {
     ctx.fillRect(bx, WINDOW_H - 16,
       160 * (1 - this.girl.dodgeFraction(this.elapsed, DODGE_COOLDOWN_MS)), 10);
 
-    const hint = app.roles.p1 === 'guy'
+    const hint = app.isTouch && app.net
+      ? 'DRAG JOYSTICK TO MOVE   |   DODGE AND ACTION ON THE RIGHT'
+      : app.isTouch
+        ? 'P1 KEYBOARD   |   P2 JOYSTICK + DODGE + ACTION'
+        : app.roles.p1 === 'guy'
       ? 'P1 WASD+F = GUY (F to grab)   |   P2 Arrows+Space = GIRL (Space slap, RSHIFT dodge)'
       : 'P1 WASD+F = GIRL (F slap, LSHIFT dodge)   |   P2 Arrows+Space = GUY (Space to grab)';
     drawText(ctx, app, hint, 16, WINDOW_H - 26, 13, MUTED);

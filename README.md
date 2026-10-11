@@ -28,7 +28,7 @@ online setup.
 On phones, starting a match requests fullscreen landscape mode. If the browser
 cannot rotate automatically, turn the phone sideways at the prompt or choose
 **Play in portrait**. Gameplay fills the browser viewport, with touch controls
-over the game.
+over the game. Drag the left joystick to move; use Dodge and Action on the right.
 
 ---
 
@@ -96,7 +96,7 @@ only used to introduce them:
 4. When both say **connected**, the host presses **Start match** (or Enter) to begin.
 
 The host runs the match and sends a 26-byte snapshot 30 times a second; the
-guest sends its 5-byte input 60 times a second and predicts its own character in
+guest sends 5-byte keyboard or 7-byte joystick input 60 times a second and predicts its own character in
 between, so it stays responsive on a slow link. Everything a guest sees - grabs,
 slaps, rounds, scores, the catch scene - is the host's decision.
 

@@ -77,9 +77,18 @@ export class Character {
       this.vy = 0;
       return;
     } else {
-      let vx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-      let vy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-      if (vx !== 0 && vy !== 0) { vx *= INV_SQRT2; vy *= INV_SQRT2; }
+      let vx;
+      let vy;
+      if (keys.axis) {
+        vx = keys.axis.x;
+        vy = keys.axis.y;
+        const length = Math.hypot(vx, vy);
+        if (length > 1) { vx /= length; vy /= length; }
+      } else {
+        vx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+        vy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+        if (vx !== 0 && vy !== 0) { vx *= INV_SQRT2; vy *= INV_SQRT2; }
+      }
       this.vx = vx * this.speed;
       this.vy = vy * this.speed;
       if (vx !== 0 || vy !== 0) {

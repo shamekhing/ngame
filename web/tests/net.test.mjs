@@ -44,6 +44,10 @@ test('packets round-trip and stay tiny', () => {
   assert.equal(input.length, 5, 'an input packet is 5 bytes');
   assert.equal(kindOf(input), KIND.INPUT);
   assert.deepEqual(decodeInput(input), { seq: 513, dirs: 0b1010, actions: 2 });
+  const analog = decodeInput(encodeInput(514, 0, 0, { x: 0.5, y: -0.75 }));
+  assert.equal(analog.seq, 514);
+  assert.ok(Math.abs(analog.axis.x - 0.5) < 0.01);
+  assert.ok(Math.abs(analog.axis.y + 0.75) < 0.01);
 
   const state = new GameState(makeApp());
   state.timeLeft = 42.5;
@@ -104,6 +108,19 @@ test('the guest drives its own character and the host agrees', async () => {
   assert.ok(Math.abs(hostX - guestX) < 24,
     `prediction tracks the host (host ${hostX.toFixed(1)} vs guest ${guestX.toFixed(1)})`);
   assert.ok(host.session.remoteKeys.has('ArrowRight'), 'the host sees the guest keys');
+});
+
+test('the guest joystick sends proportional movement to the host', async () => {
+  const { host, guest } = match();
+  await run(host, guest, 1.6);
+  const start = host.app.state.girl.x;
+  guest.app.input.setAxis(0.5, 0);
+  await run(host, guest, 1);
+  assert.ok(host.session.remoteAxis && Math.abs(host.session.remoteAxis.x - 0.5) < 0.01);
+  assert.ok(host.app.state.girl.x > start + 55 && host.app.state.girl.x < start + 110);
+  guest.app.input.setAxis(0, 0);
+  await run(host, guest, 0.1);
+  assert.equal(host.session.remoteAxis, null, 'release clears the remote axis');
 });
 
 test('the host owns every hit: a guest slap request stuns the guy', async () => {

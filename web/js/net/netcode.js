@@ -50,6 +50,7 @@ class Writer {
   }
 
   u8(v) { this._need(1); this.view.setUint8(this.at, v & 0xff); this.at += 1; return this; }
+  i8(v) { this._need(1); this.view.setInt8(this.at, Math.max(-127, Math.min(127, v | 0))); this.at += 1; return this; }
   u16(v) { this._need(2); this.view.setUint16(this.at, Math.max(0, Math.min(65535, v | 0)), true); this.at += 2; return this; }
   i16(v) { this._need(2); this.view.setInt16(this.at, Math.max(-32768, Math.min(32767, v | 0)), true); this.at += 2; return this; }
   bytes() { return this.buf.slice(0, this.at); }
@@ -62,6 +63,7 @@ class Reader {
   }
 
   u8() { const v = this.view.getUint8(this.at); this.at += 1; return v; }
+  i8() { const v = this.view.getInt8(this.at); this.at += 1; return v; }
   u16() { const v = this.view.getUint16(this.at, true); this.at += 2; return v; }
   i16() { const v = this.view.getInt16(this.at, true); this.at += 2; return v; }
 }
@@ -95,14 +97,18 @@ export function heldFromDirs(bits) {
 // packets
 // ---------------------------------------------------------------------------
 
-export function encodeInput(seq, dirs, actions) {
-  return new Writer(27).u8(KIND.INPUT).u16(seq & 0xffff).u8(dirs).u8(actions).bytes();
+export function encodeInput(seq, dirs, actions, axis = null) {
+  const w = new Writer(7).u8(KIND.INPUT).u16(seq & 0xffff).u8(dirs).u8(actions);
+  if (axis) w.i8(Math.round(axis.x * 127)).i8(Math.round(axis.y * 127));
+  return w.bytes();
 }
 
 export function decodeInput(bytes) {
   const r = new Reader(bytes);
   if (r.u8() !== KIND.INPUT) throw new Error('not an input packet');
-  return { seq: r.u16(), dirs: r.u8(), actions: r.u8() };
+  const input = { seq: r.u16(), dirs: r.u8(), actions: r.u8() };
+  if (bytes.length >= 7) input.axis = { x: r.i8() / 127, y: r.i8() / 127 };
+  return input;
 }
 
 export function encodeSnapshot(seq, tick, state) {
@@ -174,6 +180,7 @@ export class NetSession {
     this.t = transport;
     this.role = role;
     this.remoteKeys = new Set();     // host only: the guest's direction keys
+    this.remoteAxis = null;          // host only: analog joystick, when active
     this.pendingActions = 0;         // guest only: edges waiting for the next packet
     this.seq = 0;
     this.tick = 0;
@@ -239,6 +246,7 @@ export class NetSession {
   onInput(pkt) {
     if (!this.isHost || !this.state) return;
     this.remoteKeys = heldFromDirs(pkt.dirs);
+    this.remoteAxis = pkt.axis || null;
     if (pkt.actions & ACT_ACTION) this.hostAction('action');
     if (pkt.actions & ACT_DODGE) this.hostAction('dodge');
     if (pkt.actions & ACT_CONTINUE) this.hostContinue();
@@ -293,8 +301,15 @@ export class NetSession {
       if (this.inputAcc >= 1 / 60) {
         this.inputAcc = 0;
         const mapping = this.state ? this.state.mappingFor(this.localSeat) : null;
-        const dirs = mapping ? dirsFromHeld(app.input.held, mapping) : 0;
-        this.send(encodeInput((this.seq += 1), dirs, this.pendingActions));
+        let dirs = mapping ? dirsFromHeld(app.input.held, mapping) : 0;
+        const axis = app.input.axis;
+        // Direction bits keep movement usable with an older five-byte peer.
+        if (axis.y < -0.2) dirs |= DIR.up;
+        if (axis.y > 0.2) dirs |= DIR.down;
+        if (axis.x < -0.2) dirs |= DIR.left;
+        if (axis.x > 0.2) dirs |= DIR.right;
+        this.send(encodeInput((this.seq += 1), dirs, this.pendingActions,
+          axis.x !== 0 || axis.y !== 0 ? axis : null));
         this.pendingActions = 0;
       }
     }
