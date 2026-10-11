@@ -75,8 +75,7 @@ def main():
             print(f'   connected: {state!r}')
 
             print('4. host starts the match (control card, then the round)')
-            host.click('#game', position={'x': 10, 'y': 10})     # focus the canvas
-            host.keyboard.press('Enter')
+            host.click('#startBtn')
             host.wait_for_function("() => window.__game.state.constructor.name === 'GameState'",
                                    timeout=8000)
             guest.wait_for_function("() => window.__game.state.constructor.name === 'GameState'",

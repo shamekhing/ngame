@@ -105,8 +105,12 @@ canvas {
 .pick strong { font: 700 18px ui-monospace, monospace; text-transform: uppercase; }
 .pick-note { min-height: 1.2em; font: 700 12px ui-monospace, monospace; text-transform: uppercase; }
 .portrait { width: 96px; height: 96px; image-rendering: pixelated; background-repeat: no-repeat; }
-.portrait.guy { background-image: url('../../assets/NPC/GuyIdle.png'); background-size: 288px 144px; background-position: -24px -24px; }
-.portrait.girl { background-image: url('../../assets/Character/Idle.png'); background-size: 864px 144px; background-position: -24px -24px; }
+.portrait.guy { background-image: url('../../assets/NPC/GuyWalk.png'); background-size: 864px 144px; animation: menu-walk .6s steps(6) infinite; }
+.portrait.girl { background-image: url('../../assets/Character/Run.png'); background-size: 864px 144px; animation: menu-walk .6s steps(6) infinite; }
+@keyframes menu-walk {
+  from { background-position: -24px -24px; }
+  to { background-position: -888px -24px; }
+}
 
 .actions {
   width: 100%;

@@ -95,6 +95,12 @@ only used to introduce them:
 3. **Host** pastes that reply and presses *Use their code*.
 4. When both say **connected**, the host presses **Start match** (or Enter) to begin.
 
+On phones, use **Copy my code** or **Share code** to send each code through a
+messaging app. Both players must use the latest version of the page. If the
+screen stays on *connecting*, first try both phones on the same Wi-Fi. The game
+has a STUN server but no TURN relay, so some mobile networks cannot establish a
+direct connection.
+
 The host runs the match and sends a 26-byte snapshot 30 times a second; the
 guest sends 5-byte keyboard or 7-byte joystick input 60 times a second and predicts its own character in
 between, so it stays responsive on a slow link. Everything a guest sees - grabs,

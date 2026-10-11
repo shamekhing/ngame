@@ -2,8 +2,8 @@
 //
 // The two players swap a single text code out of band - chat, mail, a sticky
 // note - so no signalling server, account or build step is involved, and the
-// page works from a static host or even file://.  The code is the ICE-complete
-// SDP, deflated and base64url-encoded:
+// page works from a static host or even file://. The code is the ICE-complete
+// SDP, base64url-encoded:
 //
 //     host : createOffer()            -> code  (send to the guest)
 //     guest: joinWith(hostCode)       -> code  (send back to the host)
@@ -38,13 +38,10 @@ async function pump(stream, chunk) {
   return new Uint8Array(await new Response(stream.readable).arrayBuffer());
 }
 
-/** SDP -> short copy/pasteable code (deflated when the browser supports it) */
+/** SDP -> portable copy/pasteable code. Avoid CompressionStream format gaps on phones. */
 export async function encodeCode(desc) {
   const json = JSON.stringify({ v: 1, k: desc.type, s: desc.sdp });
   const raw = new TextEncoder().encode(json);
-  if (typeof CompressionStream === 'function') {
-    return `${TAG}d.${bytesToB64url(await pump(new CompressionStream('deflate-raw'), raw))}`;
-  }
   return `${TAG}.${bytesToB64url(raw)}`;
 }
 
@@ -70,12 +67,12 @@ export class ManualSignaler {
   /**
    * @param {object} [opts]
    * @param {Array}  [opts.iceServers] STUN/TURN config (empty = LAN only)
-   * @param {number} [opts.gatherTimeout] ms to wait for ICE before giving up
+   * @param {number} [opts.gatherTimeout] ms to wait for all ICE candidates
    * @param {Function} [opts.onChannel] called with the open RTCDataChannel
    */
   constructor(opts = {}) {
     this.iceServers = opts.iceServers || DEFAULT_ICE;
-    this.gatherTimeout = opts.gatherTimeout || 2500;
+    this.gatherTimeout = opts.gatherTimeout || 15000;
     this.onChannel = opts.onChannel || null;
     this.onState = opts.onState || null;
     this.pc = null;
@@ -103,15 +100,20 @@ export class ManualSignaler {
   _iceComplete() {
     const pc = this._peer();
     if (pc.iceGatheringState === 'complete') return Promise.resolve();
-    return new Promise((resolve) => {
-      const done = () => {
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
         pc.removeEventListener('icegatheringstatechange', onChange);
         clearTimeout(timer);
-        resolve();
       };
-      const onChange = () => { if (pc.iceGatheringState === 'complete') done(); };
-      const timer = setTimeout(done, this.gatherTimeout);
+      const onChange = () => {
+        if (pc.iceGatheringState === 'complete') { cleanup(); resolve(); }
+      };
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('network address gathering timed out; try another network'));
+      }, this.gatherTimeout);
       pc.addEventListener('icegatheringstatechange', onChange);
+      onChange();
     });
   }
 

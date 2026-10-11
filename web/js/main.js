@@ -168,6 +168,7 @@ export function setupLobby(app, status) {
   const ourLabel = el('ourLabel');
   const ourCode = el('ourCode');
   const copyBtn = el('copyBtn');
+  const shareBtn = el('shareBtn');
   const theirField = el('theirField');
   const theirLabel = el('theirLabel');
   const theirCode = el('theirCode');
@@ -184,6 +185,7 @@ export function setupLobby(app, status) {
   let signaler = null;
   let mode = null;              // 'host' | 'join'
   let poll = null;
+  let connectTimer = null;
 
   const say = (text, isErr = false) => {
     stateEl.textContent = text || '';
@@ -192,6 +194,7 @@ export function setupLobby(app, status) {
 
   const reset = () => {
     if (poll) { clearInterval(poll); poll = null; }
+    if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; }
     if (signaler) { signaler.close(); signaler = null; }
     app.leaveNet();
     mode = null;
@@ -202,6 +205,7 @@ export function setupLobby(app, status) {
     ourField.hidden = true;
     theirField.hidden = false;
     copyBtn.hidden = true;
+    shareBtn.hidden = true;
     leaveBtn.hidden = true;
     startBtn.hidden = true;
     useBtn.hidden = false;
@@ -215,6 +219,7 @@ export function setupLobby(app, status) {
 
   /** the data channel is open: hand the game a session */
   function connected(channel) {
+    if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; }
     const transport = new RTCTransport(channel);
     const session = new NetSession(transport, mode === 'host' ? 'host' : 'guest');
     app.useNet(session);
@@ -246,11 +251,20 @@ export function setupLobby(app, status) {
     localBtn.hidden = true;
     backBtn.hidden = false;
     title.textContent = mode === 'host' ? 'Host a match' : 'Join a match';
-    signaler = new ManualSignaler({ onChannel: connected });
+    signaler = new ManualSignaler({
+      onChannel: connected,
+      onState: (state) => {
+        if (state === 'failed') {
+          if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; }
+          say('Direct connection failed. Try the same Wi-Fi, or use a TURN relay for restricted networks.', true);
+        }
+      },
+    });
     try {
       if (mode === 'host') {
         ourField.hidden = false;
         copyBtn.hidden = false;
+        shareBtn.hidden = typeof navigator.share !== 'function';
         ourLabel.textContent = '1. Send this code';
         theirLabel.textContent = '2. Paste their reply';
         ourCode.value = 'gathering network addresses...';
@@ -274,11 +288,17 @@ export function setupLobby(app, status) {
       if (mode === 'host') {
         await signaler.accept(code);
         say('connecting...');
+        connectTimer = setTimeout(() => {
+          if (!app.net && mode === 'host') {
+            say('Still connecting. Check both codes; a direct route may be blocked by the phone networks. Try the same Wi-Fi.', true);
+          }
+        }, 15000);
       } else {
         ourCode.value = 'building the reply...';
         ourCode.value = await signaler.joinWith(code);
         ourField.hidden = false;            // step 2 only exists once there is a reply
         copyBtn.hidden = false;
+        shareBtn.hidden = typeof navigator.share !== 'function';
         ourLabel.textContent = '2. Send this reply';
         say('send your reply - the host pastes it on their side');
       }
@@ -304,7 +324,21 @@ export function setupLobby(app, status) {
       say('copied - send it to the other player');
     } catch (err) {
       ourCode.select();
-      say('press Ctrl+C to copy your code');
+      let copied = false;
+      try { copied = !!(document.execCommand && document.execCommand('copy')); } catch (_) { /* not supported */ }
+      if (copied) {
+        say('copied - send it to the other player');
+      } else {
+        say('Select the code above, then use your phone’s Copy or Share menu.');
+      }
+    }
+  });
+  shareBtn.addEventListener('click', async () => {
+    try {
+      await navigator.share({ title: 'Catch the Girl match code', text: ourCode.value });
+      say('code shared - wait for the other player’s reply');
+    } catch (err) {
+      if (err.name !== 'AbortError') say(`could not share: ${err.message}`, true);
     }
   });
   theirCode.addEventListener('input', () => {
