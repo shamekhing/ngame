@@ -1,215 +1,95 @@
-# Catch the Girl
+# Catch the Girl — code and editing guide
 
-A local **2-player, top-down arena chase** game that runs in the browser
-(JavaScript + Canvas). One player controls the **Guy** who hunts; the other
-controls the **Girl** who tries to escape. Each round ends in a scene from the
-project's existing pixel-art sprite sheets: the guy catching her plays **Sex 1**,
-the girl surviving the clock plays **Sex 2**. Two people can also play online
-over a direct peer-to-peer connection - no server, no accounts.
+A two-player top-down chase game made with plain HTML, CSS, JavaScript, and Canvas. The source files are the build: there is no bundler and no npm install step. The game can run locally, on GitHub Pages, or inside the small itch.io wrapper in `itch.html`.
 
-> All character art is loaded from the existing `assets/` sprite strips
-> (48x48 horizontal frame sheets). No new art files were added - the arenas are
-> painted procedurally at runtime (`web/js/arena.js`).
+## Run it while editing
 
----
-
-## Quick start
+From the repository root:
 
 ```bash
-python3 -m http.server 8000     # any static server works
-# then open http://localhost:8000/web/
+python3 -m http.server 8000
 ```
 
-No install and no build step. Controls: **P1 = WASD + F (+ Left Shift)**,
-**P2 = Arrow keys + Space (+ Right Shift)**, **`R`** swaps roles on the menu,
-**Esc** returns to the menu. See *Play in a browser (and online)* below for the
-online setup.
+Open `http://localhost:8000/web/`. Keep the server at the repository root: `web/` loads sprite files from the sibling `assets/` directory. Refresh the page after changes. The browser's developer console will show JavaScript and missing-file errors.
 
-On phones, starting a match requests fullscreen landscape mode. If the browser
-cannot rotate automatically, turn the phone sideways at the prompt or choose
-**Play in portrait**. Gameplay fills the browser viewport, with touch controls
-over the game. Drag the left joystick to move; use Dodge and Action on the right.
-
----
-
-## How to play
-
-Best-of match: **first to 3 round wins** takes the match. Each round lasts
-**60 seconds**.
-
-- The **Guy** wins the round by getting close and **grabbing** the Girl, which
-  plays the **Sex 1** scene (`CAUGHT!`).
-- The **Girl** wins the round by **surviving until the timer runs out**, which
-  plays the **Sex 2** scene (`ESCAPED!`).
-- The Girl can **slap** the Guy when he is close to **stun** him (~1.2s) and
-  knock him back. The slap has a ~3s cooldown and cycles through three attack
-  animations (`SLAP` bar in the HUD).
-- The Girl can **dodge** (jump-roll) for a short speed burst with brief
-  **grab immunity**, and it carries her **over the low cover** blocks
-  (`DODGE` bar in the HUD).
-- Each round picks one of **three maze-like arenas** (`Neon Maze`, `Crossroads`,
-  `Spiral`) - corridors, dead ends and one or two gaps to thread a chase through.
-  The Guy is **faster**; the Girl buys herself room with the slap, the dodge, and
-  a **sense ring** that warns her when he gets within `GIRL_SENSE_RADIUS`.
-
-### Controls
-
-| Action | Player 1 | Player 2 |
-|--------|----------|----------|
-| Move   | `W A S D` | `Arrow keys` |
-| Action (guy: grab / girl: slap) | `F` | `Space` |
-| Dodge (girl) | `Left Shift` | `Right Shift` |
-
-By default **P1 = Guy** and **P2 = Girl**. Press **`R`** on the menu to swap
-roles, then **`Enter`** to start.
-
----
-
-## Play in a browser (and online)
-
-The game runs from `web/` in plain JavaScript/Canvas - no install, no build
-step, no server code. Serve the repo over http (a static host, or locally):
+Run the logic tests with:
 
 ```bash
-python3 -m http.server 8000      # then open http://localhost:8000/web/
+cd web
+node --test
 ```
 
-| What | Where |
-|------|-------|
-| entry point | `web/index.html` + `web/js/main.js` (fixed 60 Hz step) |
-| settings | `web/js/config.js` |
-| characters | `web/js/entities.js` |
-| stage painter | `web/js/arena.js` |
-| scenes/HUD | `web/js/scenes.js` |
-| online play | `web/js/net/` - transport, manual signalling, netcode |
+No npm dependencies are needed. For a quick manual check after an edit, try the menu, start a local match, move both characters, trigger a catch, advance to the next round, and use the menu button. On a phone, also check portrait and landscape layouts and the joystick.
 
-### Playing online (peer to peer)
+## Where things live
 
-Choose a character on the main menu, then select **Host a match** or **Join with a code**. One player hosts, the other joins;
-the two browsers then talk **directly to each other** - the codes you swap are
-only used to introduce them:
+| File | What it controls |
+| --- | --- |
+| `web/index.html` | The menu, lobby, game canvas, result buttons, and touch-control elements. |
+| `web/css/style.css` | Imports `base.css`, `menu.css`, `touch.css`, and `responsive.css` for page layout and phone controls. |
+| `web/js/main.js` | Entry point; `boot.js`, `app.js`, `app-frame.js`, `input.js`, and `ui/` hold startup, loop, input, and sizing. |
+| `web/js/lobby.js` | Entry point; `lobby/` holds host/join events, code exchange, and connection messages. |
+| `web/js/touch.js` | Phone joystick, touch buttons, fullscreen/landscape request, and rotation prompt. |
+| `web/js/config.js` | Controls and tuning; `config/` holds dimensions and map layouts. |
+| `web/js/assets.js` | Entry point; `assets/` holds sprite loading and animation definitions. |
+| `web/js/entities.js` | Entry point; `entities/` holds characters, movement, collision, and animation. |
+| `web/js/arena.js` | Arena cache and public entry points. |
+| `web/js/arena/primitives.js` | Pixel shapes, colors, seeded randomness, shadows, and light tiles. |
+| `web/js/arena/structures.js` | Floors, walls, and low cover. |
+| `web/js/arena/props.js` | Decorative objects such as lamps, plants, rugs, and puddles. |
+| `web/js/arena/layouts.js` | The three visual layout painters. |
+| `web/js/arena/palettes.js` | Colors and texture settings for each layout. |
+| `web/js/scenes.js` | Entry point; `scenes/` holds menu, countdown, gameplay, outcomes, drawing, and camera. |
+| `web/js/scenes/camera.js` | Camera framing and intro zoom. |
+| `web/js/scenes/game-render.js` | Gameplay view, characters, effects, and HUD. |
+| `web/js/scenes/menu-render.js` | Main menu and pre-round control card drawing. |
+| `web/js/scenes/outcome-render.js` | Catch/escape and match-over drawing. |
+| `web/js/scenes/visuals.js` | Shared text, preview sprite, and animation helpers. |
+| `web/js/net/signaling.js` | Entry point; `manual-signaler.js` and `signaling-code.js` handle WebRTC and codes. |
+| `web/js/net/transport.js` | Entry point; `rtc-transport.js` wraps the WebRTC data channel. |
+| `web/js/net/netcode.js` | Entry point; `packet-*` and `session-*` handle packets and multiplayer state. |
+| `assets/Character/`, `assets/NPC/` | Horizontal PNG sprite strips. |
+| `itch.html` | A single-file itch.io wrapper that loads the hosted GitHub Pages game in an iframe. |
+| `.github/workflows/pages.yml` | GitHub Pages deployment when `master` is pushed. |
 
-1. **Host** presses *Host a match* and copies the code that appears.
-2. **Guest** presses *Join with a code*, pastes it, presses *Use their code* and
-   sends the reply back.
-3. **Host** pastes that reply and presses *Use their code*.
-4. When both say **connected**, the host presses **Start match** (or Enter) to begin.
+Start with the menu, style, main, lobby, touch, config, assets, and entities files for most edits. `arena.js` and `net/` are needed for map art and networking changes.
 
-On phones, use **Copy my code** or **Share code** to send each code through a
-messaging app. Both players must use the latest version of the page. If the
-screen stays on *connecting*, first try both phones on the same Wi-Fi. The game
-has a STUN server but no TURN relay, so some mobile networks cannot establish a
-direct connection.
+## How the game runs
 
-The host runs the match and sends a 26-byte snapshot 30 times a second; the
-guest sends 5-byte keyboard or 7-byte joystick input 60 times a second and predicts its own character in
-between, so it stays responsive on a slow link. Everything a guest sees - grabs,
-slaps, rounds, scores, the catch scene - is the host's decision.
+`web/index.html` loads `web/js/main.js` as a JavaScript module. `main.js` calls `boot()` from `boot.js` in the browser. It finds the canvas, loads the images through `buildAssets()`, creates an `App`, starts in `MenuState`, connects the HTML buttons, and starts `requestAnimationFrame`.
 
-### Notes and limits
+`App.frame(now)` receives the browser's frame callback. It accumulates elapsed time and calls `App.step(1 / FPS)` in fixed steps (`FPS` is 60 in `config.js`). Each step handles newly pressed keys, calls the current state's `update(dt)`, and polls the network session if one exists. Drawing happens once per browser frame through the current state's `draw(ctx)`. The loop caps catch-up work at five steps after a slow frame.
 
-- Works on the same LAN out of the box. Across the internet the connection needs
-  STUN (configured) and, for strict/symmetric NATs, a TURN server, which this
-  build deliberately does not ship - if the codes are exchanged but it never
-  connects, that is the usual cause.
-- The codes are single use; press *Leave match* to tear the channel down.
-- The NSFW sheets are optional. Delete or hide `assets/Character/Sex1.png` and
-  `Sex2.png` for a **--sfw** build: those scenes drop out of the pool on their
-  own and the game still plays.
-- Best ping wins: the build targets two players a couple of hundred ms apart at
-  most, which is what the wide HUD and generous hit boxes are tuned for.
+The current screen is `app.state`. The main states in `scenes.js` are:
 
----
-
-## Project structure
-
-```
-assets/           the sprite sheets the game loads
-  Character/      girl animations (Idle, Run, Slap, Sex1, Sex2, ...)
-  NPC/            guy animations (GuyIdle, GuyWalk, ...)
-web/                the game (static, no build step)
-  index.html      page + the online-play box
-  debug.html      renders all three arenas full size for eyeballing
-  css/style.css   page chrome around the canvas
-  js/             config, assets, entities, arena, scenes, main
-  js/net/         transport, manual signalling, netcode, session
-  tests/          node --test suites (logic, render, assets, netcode)
-tools/
-  shots.py        headless screenshots of the browser build
-  net_test.py     two real browser pages play a match over WebRTC
+```text
+MenuState → IntroState → GameState → NsfwState → next GameState
+                                         └─────→ MatchOverState
 ```
 
----
+`IntroState` shows the opening control card/countdown. `GameState` owns the current map, Guy, Girl, timer, camera, hits, and score changes. `NsfwState` plays the round-outcome sprite animation and then advances. `MatchOverState` offers rematch/menu. A state changes screen by assigning a new object to `app.state`. For example, `App.startMatch()` creates `IntroState`, and `NsfwState.finish()` creates the next `GameState` or `MatchOverState`.
 
-## The arenas
+`WINDOW_W = 960` and `WINDOW_H = 540` are the internal canvas resolution. `WORLD_W = 1280` and `WORLD_H = 960` are the larger arena coordinates. `fitCanvas()` in `ui/fit.js` scales the canvas to the available browser space without changing those internal coordinates. The in-game CSS removes surrounding padding and fills the viewport; the menu uses regular page layout.
 
-Each layout is painted once per match into a cached world-sized canvas
-(`web/js/arena.js`) and then blitted through the camera, so the stage has real
-materials instead of flat rectangles.
+## Edit gameplay and controls
 
-| Layout | Shape | Look |
-|--------|-------|------|
-| `Neon Maze` | serpentine lanes - three walls sealing alternate ends, wide U-turns | Neon Yard - wet concrete slabs, court paint, oil stains, puddles reflecting the neon, dumped tyres, street lamps |
-| `Crossroads` | ring corridor around a central keep, corner blocks | Steel Warehouse - polished checkered concrete, brick walls ringed with hazard striping, pallets, drums, floor cables, skylight shafts |
-| `Spiral` | two rings, mouth on the left, gap on the right | Apartment Suite - parquet block floor, pattern rugs, potted plants, warm floor lamps, skirting trim |
+Most numbers are named constants at the top of `web/js/config.js`:
 
-Every corridor is at least 100px wide against a 26x30 collider, and
-`tests/game.test.mjs` flood-fills each maze with a 16px comfort margin to prove
-both spawns and every low-cover block stay reachable.
+- `ROUND_SECONDS`: round duration.
+- `WIN_TARGET`: round wins needed to take the match.
+- `GUY_SPEED`, `GIRL_SPEED`: movement speed in world pixels per second.
+- `GRAB_RADIUS`, `SLAP_RADIUS`: maximum distance for each action to hit.
+- `SLAP_STUN_MS`, `SLAP_COOLDOWN_MS`, `KNOCKBACK_PX`: slap behavior.
+- `DODGE_MS`, `DODGE_COOLDOWN_MS`, `DODGE_SPEED`: dodge duration, cooldown, and speed.
+- `GIRL_SENSE_RADIUS`: warning ring range.
+- `ZOOM_MIN`, `ZOOM_MAX`, `INTRO_MS`, `CARD_MS`: camera/countdown presentation.
+- `P1_KEYS`, `P2_KEYS`: keyboard mappings using `KeyboardEvent.code` names such as `KeyW` and `ArrowUp`.
 
-The painting technique is ported from the `pixel-scene-expansion` reference pack
-shipped alongside this project: everything is built from axis-aligned pixel
-rectangles, a deterministic xorshift PRNG (`seed`), generated material textures
-(concrete, brick, wood, steel), stepped cast shadows and hard-edged dithered
-light. Add a new look by writing a painter in `web/js/arena.js` and registering
-it in `KINDS` / `PAINTERS` / `VIGNETTE_TINT`.
+Example: to make a round 90 seconds and require four wins, set `ROUND_SECONDS = 90` and `WIN_TARGET = 4`. Reload the page to use the new values.
 
----
+`Input` in `input.js` stores held keys, newly pressed keys, and an analog `axis` from the phone joystick. `GameState.handleKey()` in `scenes/game-input.js` handles actions; `scenes/game-update.js` reads movement. `Character.move()` in `entities/movement.js` turns directions into velocity and moves one axis at a time so characters can slide along walls. `Guy` and `Girl` contain their special action logic, while `GameState.doAction()`, `doDodge()`, `onCatch()`, and `onEscape()` live in `scenes/game-input.js` and `scenes/game-outcome.js`.
 
-## Gameplay tuning
+The game supports two people on one keyboard or one player per browser. On a phone, the joystick feeds `Input.setAxis(x, y)` with values from -1 to 1. The Dodge and Action touch buttons feed the same key-input path as the keyboard. The joystick dead zone (`0.12`) and movement radius (`rect.width * 0.36`) are in `touch.js` inside `moveJoystick()`.
 
-Balance knobs live in `web/js/config.js`:
 
-- `ROUND_SECONDS` - round length (default 60)
-- `SLAP_STUN_MS` / `SLAP_COOLDOWN_MS` / `SLAP_RADIUS` - the girl's slap
-- `GRAB_RADIUS` / `ALERT_RADIUS` - the guy's grab reach and alert trigger
-- `GUY_SPEED` / `GIRL_SPEED` - movement speeds
-- `WIN_TARGET` - rounds needed to win the match (default 3)
-- `ARENA_LAYOUTS` - the three arena layouts (solid walls + low cover)
-- `DODGE_MS` / `DODGE_COOLDOWN_MS` / `DODGE_SPEED` - the girl's dodge
-
----
-
-## Testing
-
-No display or browser needed - canvases and images are stubbed:
-
-```bash
-cd web && node --test    # logic, render, assets, input, arena, netcode (28 tests)
-```
-
-```bash
-cd web && node --test           # logic, render, assets, input, arena, netcode
-```
-
-Two optional browser checks live in `tools/`; they need a Playwright venv:
-
-```bash
-python3 -m venv /tmp/pw && /tmp/pw/bin/pip install playwright
-/tmp/pw/bin/playwright install firefox
-
-/tmp/pw/bin/python tools/shots.py      # screenshots + a page-error report
-/tmp/pw/bin/python tools/net_test.py   # two browser pages play over WebRTC
-```
-
-`net_test.py` is the real proof of the netplay path: it drives both pages
-through the handshake, has the guest walk, and asserts both screens agree.
-
----
-
-## Notes & limitations
-
-- There is no dedicated "facing up" sprite in the source art, so upward movement
-  reuses the side-facing sheet (standard for this asset set).
-- The game is keyboard-only and intended for two people sharing one keyboard.
-- No audio is included (the asset set is art-only).
+Continue with the [maps, scenes, menu, online play, and deployment guide](docs/editing-guide.md).

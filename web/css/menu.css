@@ -1,0 +1,97 @@
+/* ---------- main page: character choice + hosting / joining ---------- */
+
+.menu {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.menu-heading { text-align: center; }
+.menu-heading h1 { margin: 8px 0 0; font: 700 clamp(30px, 8vw, 52px)/1.1 ui-monospace, monospace; text-transform: uppercase; }
+.menu-heading p { margin: 7px 0 0; color: var(--muted); }
+.picks { display: flex; width: 100%; max-width: 480px; gap: 12px; }
+.menu.is-exchanging .picks { display: none; }
+.pick { position: relative; flex: 1; min-width: 0; min-height: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--muted); background: var(--panel); border: 2px solid var(--line); border-radius: 14px; cursor: pointer; }
+.pick[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); background: #241a3d; }
+.pick strong { font: 700 18px ui-monospace, monospace; text-transform: uppercase; }
+.pick-note { min-height: 1.2em; font: 700 12px ui-monospace, monospace; text-transform: uppercase; }
+.portrait { width: 96px; height: 96px; image-rendering: pixelated; background-repeat: no-repeat; }
+.portrait.guy { background-image: url('../../assets/NPC/GuyWalk.png'); background-size: 864px 144px; animation: menu-walk .6s steps(6) infinite; }
+.portrait.girl { background-image: url('../../assets/Character/Run.png'); background-size: 864px 144px; animation: menu-walk .6s steps(6) infinite; }
+@keyframes menu-walk {
+  from { background-position: -24px -24px; }
+  to { background-position: -888px -24px; }
+}
+
+.actions {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.actions button.big { flex: 1 1 190px; max-width: 250px; }
+
+button.big {
+  padding: 14px 18px;
+  font: 700 17px/1.2 inherit;
+  color: #10201a;
+  background: var(--green);
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform .1s ease, filter .15s ease;
+}
+button.big.alt { color: #0e1a2b; background: var(--blue); }
+button.big:active { transform: scale(.98); }
+
+button.ghost {
+  padding: 10px 14px;
+  font: 15px/1.2 inherit;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+button.ghost:hover { color: var(--text); border-color: #4a3a75; }
+button:disabled { opacity: .4; cursor: default; }
+
+.exchange {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.exchange h2 { margin: 0; font-size: 18px; }
+.result-actions { display: flex; justify-content: center; gap: 12px; width: 100%; }
+.result-actions button { min-width: 120px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field span { font-size: 13px; color: var(--muted); }
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text);
+  background: #100c1c;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  resize: none;
+}
+
+.lobby-state {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+.lobby-state.err { color: var(--danger); }
+

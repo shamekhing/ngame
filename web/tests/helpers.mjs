@@ -2,7 +2,6 @@
 import { FRAME } from '../js/config.js';
 import { GIRL_SHEETS, GUY_SHEETS, NSFW_SHEETS, makeAnims } from '../js/assets.js';
 import { App } from '../js/main.js';
-
 export const DT = 1 / 60;
 
 // frame counts exactly as they are in assets/ (verified against the PNG widths)
